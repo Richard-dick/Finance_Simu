@@ -73,18 +73,16 @@ class QuantitativeTrader:
             sold_shares = holding['shares'] * share_ratio
             holding['shares'] -= sold_shares
             get_money = sold_shares * sell_price
-            self.balance += get_money
+            self.balance += (get_money - self.sell_fee(get_money))  # 扣除手续费
             print("Day:", self.day_id, "| 卖出股票", stock_id, "| 数量", sold_shares, "| 价格", sell_price, "| 剩余资金：", self.balance)
-    
 
-    def buy_fee(amount):
+    def sell_fee(self, amount):
         """
-        计算买入手续费
-        :param amount: 买入金额
+        计算卖出手续费，抽象后只是用这个
+        :param amount: 卖出金额
         :return: 手续费
         """
-        return max(amount * 0.0001, 5) + amount*0.00001 
-
+        return max(amount * 0.0007, 5)
 
     def all_balance(self):
         """
@@ -99,14 +97,3 @@ class QuantitativeTrader:
 
 
 
-# 示例使用
-initial_balance = 100000  # 初始资金额度
-trader = QuantitativeTrader(initial_balance)
-
-day_bound = 100  # 假设有100天的数据
-
-# 模拟股票价格变动
-for i in range(1, day_bound):
-    trader.trade("512480", i)  # 假设股票ID为"512480"，天数从0到99
-
-trader.all_balance()  # 打印当前总资产

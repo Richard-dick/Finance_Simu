@@ -5,3 +5,5 @@
 tmp.xlsx
 
 **.png
+
+__pycache__/
