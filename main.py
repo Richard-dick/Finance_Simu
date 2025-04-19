@@ -1,9 +1,10 @@
 from trader import QuantitativeTrader
+from SimpleTrader import SimpleTrader
 # 示例使用
 initial_balance = 100000  # 初始资金额度
-trader = QuantitativeTrader(initial_balance)
+trader = SimpleTrader(initial_balance)
 
-day_bound = 100  # 假设有100天的数据
+day_bound = 242  # 假设有100天的数据
 
 # 模拟股票价格变动
 for i in range(1, day_bound):

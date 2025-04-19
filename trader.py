@@ -1,25 +1,16 @@
 import pandas as pd
+from utils import get_stock_info
+from SimpleTrader import SimpleTrader
 
 """
 进行了一定的抽象：
-- 暂时忽略的交易费率
-- 暂时忽略了买卖必须要有100股为基础的限制
-- 暂时忽略
 - 非常简单的策略
-
 """
 
 
-class QuantitativeTrader:
+class QuantitativeTrader(SimpleTrader):
     def __init__(self, initial_balance):
-        """
-        初始化量化交易者
-        :param initial_balance: 初始资金额度
-        """
-        self.balance = initial_balance  # 可用资金
-        self.holdings = {}  # 持有的股票信息 list，list 内格式为 {stock_id: {'price': buy_price, 'shares': shares, 'can_sell': can_sell}}
-        self.day_id = 0  # 当前天数
-        self.traded = False  # 是否交易过
+        super().__init__(initial_balance)  # 初始化父类
 
     def trade(self, stock_id, day_id, strategy='simple'):
         """
@@ -30,7 +21,7 @@ class QuantitativeTrader:
         """
         self.day_id = day_id  # 更新当前天数
         if stock_id not in self.holdings:
-            self.holdings[stock_id] = {'price': self.get_stock_info(stock_id, 0), 'shares': 0, 'can_sell': True}
+            self.holdings[stock_id] = {'price': get_stock_info(stock_id, 0), 'shares': 0, 'can_sell': True}
         if strategy == 'simple':
             self.simple_strategy(stock_id, buy_ration=0.2, sell_ration=0.4)
         
@@ -47,12 +38,12 @@ class QuantitativeTrader:
         # 如果持有该股票，则依赖持有价格进行对比交易，否则依赖过去一天的价格进行对比交易
         if self.holdings[stock_id]["shares"] == 0: 
             # ! 建仓只需要有一个降低的条件就行了
-            last_price = self.get_stock_info(stock_id, self.day_id - 1)
-            if last_price > self.get_stock_info(stock_id, self.day_id):
+            last_price = get_stock_info(stock_id, self.day_id - 1)
+            if last_price > get_stock_info(stock_id, self.day_id):
                 self.buy(stock_id, buy_ration * self.balance)  # 买入底仓
         else: # ! 有仓位的更新
             last_price = self.holdings[stock_id]["price"]  # 获取自己的持仓成本价格
-            current_price = self.get_stock_info(stock_id, self.day_id)  # 获取当前价格
+            current_price = get_stock_info(stock_id, self.day_id)  # 获取当前价格
             if last_price*sell_factor < current_price:# ! 说明涨了
                 self.sell(stock_id, sell_ration)  # 卖出10%的持有量
             elif last_price*buy_factor > current_price:  # ! 说明跌了
@@ -62,92 +53,17 @@ class QuantitativeTrader:
         if self.traded:
             self.traded = False
             self.check_balance()  # 打印当前总资产
-
-    def get_stock_info(self, stock_id:int, day_id:int):
-        file_path = stock_id + '-2024.xlsx'
-        data = pd.read_excel(file_path)
-        return data.iloc[day_id]["close"]  # 返回指定日期的收盘价
         
     def buy(self, stock_id, amount):
-        """
-        买入股票
-        :param stock_id: 股票ID
-        :param amount: 买入金额
-        """
-        holding = self.holdings.get(stock_id, None)
-        buy_price = self.get_stock_info(stock_id, self.day_id)  # 获取当前价格
-        buy_share = self.round_shares(amount / buy_price)  # 计算购买份数
-        # 计算买入实际金额
-        buy_amount = buy_share * buy_price
-
-        if buy_amount > self.balance:# 一般来说是不会发生的
-            print("余额不足，无法买入")
-            return
-        if holding:
-            # 如果已经持有该股票，则更新持有信息
-            holding['price'] = (holding['price'] * holding['shares'] + buy_amount) / (holding['shares'] + buy_share)
-            holding['shares'] += buy_share
-        else:
-            # 如果没有持有该股票，则添加新的持有信息
-            self.holdings[stock_id] = {'price': buy_price, 'shares': buy_share, 'can_sell': True}
-        self.balance -= buy_amount  # 扣除买入金额
-        self.traded = True  # 标记为已交易
-        print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
-
-    def round_shares(self, shares):
-        """
-        四舍五入到最接近的100整数
-        :param shares: 股票数量
-        :return: 四舍五入后的股票数量
-        """
-        return ((shares + 99) // 100) * 100
+        super().buy(stock_id, amount)  # 调用父类的买入方法
 
     def sell(self, stock_id, share_ratio):
-        holding = self.holdings.get(stock_id, None)
-        sold_shares = self.round_shares(holding['shares'] * share_ratio)
-        if sold_shares > holding['shares'] or sold_shares == 0:
-            return  # 如果没有可卖出的股票，则返回
-
-        if holding:
-            # 卖出持有的股票
-            self.traded = True  # 标记为已交易
-            sell_price = self.get_stock_info(stock_id, self.day_id)
-            holding['shares'] -= sold_shares
-            get_money = sold_shares * sell_price
-            self.balance += (get_money - self.sell_fee(get_money))  # 扣除手续费
-            print("Day:", self.day_id, "| 卖出", stock_id, "| 数量", sold_shares, "| 价格", sell_price, "| 剩余资金：", self.balance)
-        else:
-            print("没有持有该股票，无法卖出")
-
-    def sell_fee(self, amount):
-        """
-        计算卖出手续费，抽象后只是用这个
-        :param amount: 卖出金额
-        :return: 手续费
-        """
-        return max(amount * 0.0007, 5)
+        super().sell(stock_id, share_ratio)  # 调用父类的卖出方法
 
     def all_balance(self):
-        """
-        计算当前总资产
-        :return: 当前总资产
-        """
-        total_value = self.balance
-        for stock_id in self.holdings.keys():
-            holding = self.holdings[stock_id]
-            total_value += holding['shares'] * self.get_stock_info(stock_id, self.day_id)  # 获取当前价格
-        return total_value
+        return super().all_balance()  # 调用父类的方法
     
     def check_balance(self):
-        """
-        计算当前总资产
-        :return: 当前总资产
-        """
-        total_value = self.balance
-        for stock_id in self.holdings.keys():
-            holding = self.holdings[stock_id]
-            total_value += holding['shares'] * self.get_stock_info(stock_id, self.day_id)  # 获取当前价格
-            print(self.day_id, stock_id, holding['shares'], holding['price'], self.get_stock_info(stock_id, self.day_id))
-        print(f"Day: {self.day_id} | 当前总资产: {total_value} | 可用资金: {self.balance}")
+        super().check_balance()  # 调用父类的方法
 
 
