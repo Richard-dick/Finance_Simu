@@ -48,7 +48,7 @@ else:
 # df = pd.DataFrame(minute_data)
 # print(df.head())
 
-stock_id = '512480'
+stock_id = '600519'
 
 data = api.get_security_bars(9, 1, stock_id, 0, 365)
 df = api.to_df(data)

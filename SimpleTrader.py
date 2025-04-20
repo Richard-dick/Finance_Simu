@@ -1,4 +1,7 @@
-from utils import round_shares, get_stock_info, sell_fee
+from utils import round_shares, get_stock_info, sell_fee, get_moving_average, feature_extractor
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
 """
 进行了一定的抽象：
@@ -16,6 +19,7 @@ class SimpleTrader:
         self.holdings = {}  # 持有的股票信息 list，list 内格式为 {stock_id: {'price': buy_price, 'shares': shares, 'can_sell': can_sell}}
         self.day_id = 0  # 当前天数
         self.traded = False  # 是否交易过
+        self.model = None
 
     def trade(self, stock_id, day_id, strategy='simple'):
         """
@@ -29,6 +33,16 @@ class SimpleTrader:
             self.holdings[stock_id] = {'price': get_stock_info(stock_id, 0), 'shares': 0, 'can_sell': True}
         if strategy == 'simple':
             self.simple_strategy(stock_id, buy_ration=0.2, sell_ration=0.4)
+        elif strategy == 'ma5':
+            self.simple_strategy_MA5(stock_id, buy_ration=0.2, sell_ration=0.4)
+        elif strategy == 'ml':
+            if self.model == None:
+                print("开始训练")
+                self.model = self.RF_trainer(stock_id=stock_id)
+                print("训练结束")
+            else:
+                self.ml_strategy(stock_id=stock_id, model=self.model, feature_extractor=feature_extractor, 
+                                 buy_ration=0.2, sell_ration=0.4)
         
 
     def simple_strategy(self, stock_id, buy_ration, sell_ration, buy_factor = 0.95, sell_factor = 1.05):
@@ -57,6 +71,99 @@ class SimpleTrader:
         if self.traded:
             self.traded = False
             self.check_balance()  # 打印当前总资产
+
+
+    def simple_strategy_MA5(self, stock_id, buy_ration, sell_ration, buy_factor=0.95, sell_factor=1.05, cooldown_days=2):
+        """
+        改进策略：增加趋势判断（MA5 vs MA20）
+        """
+        current_price = get_stock_info(stock_id, self.day_id)
+
+        # 计算趋势指标
+        ma5 = get_moving_average(stock_id, self.day_id, window=5)
+        ma20 = get_moving_average(stock_id, self.day_id, window=20)
+        if ma5 is None or ma20 is None:
+            return  # 等待足够数据后再交易
+
+        upward_trend = ma5 > ma20
+        downward_trend = ma5 < ma20
+
+        # 初始化持仓
+        if self.holdings[stock_id]["shares"] == 0:
+            last_price = get_stock_info(stock_id, self.day_id - 1)
+            price_drop = last_price > current_price and current_price < ma20
+            if price_drop and upward_trend:
+                self.buy(stock_id, buy_ration * self.balance)
+                self.holdings[stock_id]["last_trade_day"] = self.day_id
+            return
+
+        # 持仓逻辑
+        holding = self.holdings[stock_id]
+        last_price = holding["price"]
+
+        if "last_trade_day" in holding and self.day_id - holding["last_trade_day"] < cooldown_days:
+            return
+
+        if current_price >= last_price * sell_factor and downward_trend:
+            self.sell(stock_id, sell_ration)
+            holding["last_trade_day"] = self.day_id
+        elif current_price <= last_price * buy_factor and upward_trend:
+            self.buy(stock_id, buy_ration * self.balance)
+            holding["last_trade_day"] = self.day_id
+
+        if self.traded:
+            self.traded = False
+            self.check_balance()
+
+    
+    def ml_strategy(self, stock_id, model, feature_extractor, buy_ration=0.2, sell_ration=0.4):
+        """
+        使用机器学习模型判断是否买入/卖出
+        :param stock_id: 股票ID
+        :param model: 已训练好的ML模型（分类器）
+        :param feature_extractor: 函数，传入 stock_id, day_id 返回特征向量
+        """
+        self.day_id = int(self.day_id)  # 确保 day_id 是整数
+
+        # 获取特征向量
+        X = feature_extractor(stock_id, self.day_id)
+        if X is None:
+            return
+
+        # 预测信号（0 = 卖出，1 = 持仓，2 = 买入）
+        signal = model.predict([X])[0]
+
+        # 根据预测信号执行操作
+        if signal == 2:
+            self.buy(stock_id, self.balance * buy_ration)
+        elif signal == 0:
+            self.sell(stock_id, sell_ration)
+
+        if self.traded:
+            self.traded = False
+            self.check_balance()
+
+    def RF_trainer(self, stock_id):
+        # 准备训练数据
+        X_data = []
+        y_data = []
+
+        for day_id in range(10, 100):
+            features = feature_extractor(stock_id, day_id)
+            if features is None:
+                continue
+            # 未来涨/跌作为标签
+            future_return = get_stock_info(stock_id, day_id + 1) / get_stock_info(stock_id, day_id) - 1
+            label = 2 if future_return > 0.02 else 0 if future_return < -0.02 else 1
+            X_data.append(features)
+            y_data.append(label)
+
+        # 训练模型
+        X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.2)
+        model = RandomForestClassifier(n_estimators=100)
+        model.fit(X_train, y_train)
+
+        return model
 
         
     def buy(self, stock_id, amount):
