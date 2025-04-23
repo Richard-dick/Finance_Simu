@@ -48,9 +48,9 @@ else:
 # df = pd.DataFrame(minute_data)
 # print(df.head())
 
-stock_id = '600519'
+stock_id = '512480'
 
-data = api.get_security_bars(9, 1, stock_id, 0, 365)
+data = api.get_security_bars(9, 1, stock_id, 800, 800)
 df = api.to_df(data)
 
 # 保存为 Excel 文件
@@ -58,8 +58,8 @@ df.to_excel('tmp.xlsx', index=False)
 print("数据已保存到 tmp.xlsx")
 
 
-df['datetime'] = pd.to_datetime(df['datetime'])
-df.set_index('datetime', inplace=True)
+# df['datetime'] = pd.to_datetime(df['datetime'])
+# df.set_index('datetime', inplace=True)
 
 # 按月分组
 # draw_by_mouth(df, stock_id)

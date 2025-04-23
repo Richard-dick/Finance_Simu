@@ -1,6 +1,6 @@
 import pandas as pd
 from utils import get_stock_info
-from SimpleTrader import SimpleTrader
+from BaseTrader import BaseTrader
 
 """
 进行了一定的抽象：
@@ -8,7 +8,7 @@ from SimpleTrader import SimpleTrader
 """
 
 
-class QuantitativeTrader(SimpleTrader):
+class QuantitativeTrader(BaseTrader):
     def __init__(self, initial_balance):
         super().__init__(initial_balance)  # 初始化父类
 

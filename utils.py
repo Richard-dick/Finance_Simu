@@ -18,7 +18,14 @@ def round_shares(shares):
     return ((shares + 99) // 100) * 100
 
 def get_stock_info(stock_id:int, day_id:int):
-    file_path = stock_id + '-2024.xlsx'
+    # file_path = stock_id + '-2024.xlsx'
+    file_path = './' + stock_id + '/'+ '2022.xlsx'
+    data = pd.read_excel(file_path)
+    return data.iloc[day_id]["close"]  # 返回指定日期的收盘价
+
+
+def get_stock_info_by_year(stock_id:int, year:int, day_id:int):
+    file_path = './' + stock_id + '/'+ year +'.xlsx'
     data = pd.read_excel(file_path)
     return data.iloc[day_id]["close"]  # 返回指定日期的收盘价
 
@@ -72,3 +79,17 @@ def feature_extractor(stock_id, day_id, window=5):
     return [vol, mean_return, last_return]
 
 
+def download_stock_data(stock_id, year):
+    """
+    下载股票数据
+    :param stock_id: 股票ID
+    :param year: 年份
+    """
+    api=TdxHq_API()
+
+    with api.connect():
+        data=[]
+
+        for i in range(10):
+                data+=api.get_security_bars(9,0,'000001',(9-i)*800,800)
+    print(api.to_df(data))
