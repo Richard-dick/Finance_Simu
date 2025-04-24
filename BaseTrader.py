@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import round_shares, get_stock_info_by_year, sell_fee
+from utils import round_shares, sell_fee
 
 """
 进行了一定的抽象：
@@ -20,6 +20,8 @@ class BaseTrader:
         self.cur_price = 0  # 当前价格
         self.last_price = 0  # 上一个价格
         self.traded = False  # 是否交易过
+        self.balance_history = []  # 记录每一天的总资产变化
+        self.trade_history = []  # 记录每一天的交易情况 内部为 [+-share, amount, price]
 
     def trade(self, stock_id, cur_price, strategy='simple'):
         """
@@ -36,6 +38,8 @@ class BaseTrader:
         if strategy == 'simple':
             self.simple_strategy(stock_id, buy_ration=0.2, sell_ration=0.4)
         
+        self.balance_history.append(self.all_balance())  # 记录总资产变化
+        
 
     def simple_strategy(self, stock_id, buy_ration, sell_ration, buy_factor = 0.95, sell_factor = 1.05):
         """
@@ -48,20 +52,25 @@ class BaseTrader:
         """
         # 如果持有该股票，则依赖持有价格进行对比交易，否则依赖过去一天的价格进行对比交易
         if self.last_price == 0:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
             return  # 如果没有上一个价格，则返回
         if self.holdings[stock_id]["shares"] == 0: 
             # ! 建仓只需要有一个降低的条件就行了
             last_price = self.last_price
             if last_price > self.cur_price:
                 self.buy(stock_id, buy_ration * self.balance)  # 买入底仓
+            else:
+                self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
         else: # ! 有仓位的更新
             last_price = self.holdings[stock_id]["price"]  # 获取自己的持仓成本价格
             current_price = self.cur_price  # 获取当前价格
-            if last_price*sell_factor < current_price:# ! 说明涨了
+            if last_price*sell_factor <= current_price:# ! 说明涨了
                 self.sell(stock_id, sell_ration)  # 卖出10%的持有量
             elif last_price*buy_factor > current_price:  # ! 说明跌了
                 self.buy(stock_id, buy_ration * self.balance)
-        
+            else:
+                self.trade_history.append([self.day_id, 0, 0, self.cur_price])
+
         if self.traded:
             self.traded = False
             self.check_balance()  # 打印当前总资产
@@ -80,8 +89,9 @@ class BaseTrader:
         buy_amount = buy_share * buy_price
 
         if buy_amount > self.balance:# 一般来说是不会发生的
-            print("余额不足，无法买入")
-            print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
+            # print("余额不足，无法买入")
+            # print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
+            self.trade_history.append([self.day_id, 0, 0, buy_price])  # 记录交易情况
             return
         if holding:
             # 如果已经持有该股票，则更新持有信息
@@ -93,11 +103,13 @@ class BaseTrader:
         self.balance -= buy_amount  # 扣除买入金额
         self.traded = True  # 标记为已交易
         print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
+        self.trade_history.append([self.day_id, buy_share, buy_amount, buy_price])  # 记录交易情况
 
     def sell(self, stock_id, share_ratio):
         holding = self.holdings.get(stock_id, None)
         sold_shares = round_shares(holding['shares'] * share_ratio)
         if sold_shares > holding['shares'] or sold_shares == 0:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
             return  # 如果没有可卖出的股票，则返回
 
         if holding:
@@ -108,7 +120,9 @@ class BaseTrader:
             get_money = sold_shares * sell_price
             self.balance += (get_money - sell_fee(get_money))  # 扣除手续费
             print("Day:", self.day_id, "| 卖出", stock_id, "| 数量", sold_shares, "| 价格", sell_price, "| 剩余资金：", self.balance)
+            self.trade_history.append([self.day_id, -sold_shares, get_money, sell_price])  # 记录交易情况
         else:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
             print("没有持有该股票，无法卖出")
             
 
@@ -122,6 +136,60 @@ class BaseTrader:
             holding = self.holdings[stock_id]
             total_value += holding['shares'] * self.cur_price  # 获取当前价格
         return total_value
+    
+    def buy_sell_graph(self):
+        """
+        将所有买卖情况画到图上
+        """
+        import matplotlib.pyplot as plt
+
+        # 提取交易数据
+        days = [trade[0] for trade in self.trade_history]
+
+        prices = [trade[3] for trade in self.trade_history]
+
+        # 绘制买入和卖出情况
+        plt.figure(figsize=(12, 6))
+        plt.plot(days, prices, label='Price', color='blue')
+        for op in self.trade_history:
+            if op[1] > 0:
+                plt.scatter(op[0], op[3], color='red', marker='.', s =30)
+            elif op[1] < 0:
+                plt.scatter(op[0], op[3], color='blue', marker='.', s=30)
+
+        plt.title('Buy and Sell History')
+        plt.xlabel('Day')
+        plt.ylabel('Shares')
+        plt.grid()
+        plt.legend()
+        plt.show()
+
+
+    def draw_balance(self):
+        """
+        绘制当前总资产变化图
+        :return: None
+        """
+        import matplotlib.pyplot as plt
+
+        # 计算总资产
+        x = range(len(self.balance_history))
+        # print(self.trade_history)
+        init_price = self.trade_history[0][-1]  # 获取初始价格
+
+        y = [100000 *_[-1]/init_price for _ in self.trade_history]
+        plt.figure(figsize=(12, 6))
+        
+
+        # 绘制图形
+        plt.plot(x, self.balance_history, label='strategy', color='blue')
+        plt.plot(x, y, label='market', color='red')
+        plt.title('Total Asset Value')
+        plt.xlabel('Day')
+        plt.ylabel('Total Value')
+        plt.grid()
+        plt.legend()
+        plt.show()
     
     def check_balance(self):
         """
@@ -154,9 +222,32 @@ class StockData:
         """
         获取本年交易日数量
         """
-        filtered_df = self.data[self.data['year'] == 2022]
-        print(filtered_df)
+        filtered_df = self.data[self.data['year'] == self.year]
+        # print(filtered_df)
         return filtered_df.shape[0]  # 返回行数，即交易日数量
+    
+    def draw_data(self, year:int):
+        """
+        绘制数据
+        :param stock_id: 股票ID
+        :param year: 年份
+        """
+        import matplotlib.pyplot as plt
+
+        # 读取数据
+        df = self.data[self.data['year'] == self.year]
+
+        index_list = range(self.get_trade_day())
+        
+        # 绘制收盘价曲线
+        plt.figure(figsize=(12, 6))
+        plt.plot(index_list, df['close'])
+        plt.title(f'{self.stock_id} {year} close price')
+        plt.xlabel('day index')
+        plt.ylabel('close price')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
 
     def download_data(self, stock_id:str):
         """

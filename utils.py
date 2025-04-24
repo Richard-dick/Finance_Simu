@@ -15,7 +15,10 @@ def round_shares(shares):
     :param shares: 股票数量
     :return: 四舍五入后的股票数量
     """
-    return ((shares + 99) // 100) * 100
+    if shares < 100:
+        return 100
+    else:
+        return (shares // 100) * 100
 
 def get_stock_info(stock_id:int, day_id:int):
     # file_path = stock_id + '-2024.xlsx'
