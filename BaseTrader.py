@@ -218,6 +218,10 @@ class StockData:
         filtered_df = self.data[self.data['year'] == self.year]
         return filtered_df.iloc[day]["close"]
     
+    def get_volume_by_day_id(self, day:str):
+        filtered_df = self.data[self.data['year'] == self.year]
+        return filtered_df.iloc[day]["vol"]
+    
     def get_trade_day(self):
         """
         获取本年交易日数量

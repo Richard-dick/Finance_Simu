@@ -1,8 +1,9 @@
 from trader import QuantitativeTrader
-from SimpleTrader import SimpleTrader
+# from SimpleTrader import SimpleTrader
 from BaseTrader import BaseTrader, StockData
 from PerfectTrader import PerfectTrader
 from OldTrader import OldTrader
+from EnhancedTrader import EnhancedTrader
 
 
 
@@ -29,14 +30,18 @@ semiConductor = StockData(semi_id, 2024)  # 假设股票ID为"512480"，天数�
 base_trader = BaseTrader(initial_balance)
 perfect_trader = PerfectTrader(initial_balance)
 old_trader = OldTrader(initial_balance)
+EnhancedTrader = EnhancedTrader(initial_balance)
 data_size = semiConductor.get_trade_day()
 
 for i in range(0, data_size):
     cur_price = semiConductor.get_data_by_day_id(i)  # 获取当前价格
-    # base_trader.trade("512480", cur_price, strategy='simple') 
+    cur_vol = semiConductor.get_volume_by_day_id(i)  # 获取当前成交量
+    base_trader.trade("512480", cur_price, strategy='simple') 
     # perfect_trader.trade("512480", cur_price)
-    old_trader.trade("512480", cur_price)  
+    # old_trader.trade("512480", cur_price)  
+    EnhancedTrader.trade("512480", cur_price, cur_vol, strategy='volume_price')  # 执行交易
 
 # perfect_trader.perfect_strategy("512480")  # 执行完所有的交易后，调用完美策略
-old_trader.buy_sell_graph()  # 打印当前总资产
-old_trader.check_balance()
+EnhancedTrader.buy_sell_graph()  # 打印当前总资产
+EnhancedTrader.check_balance()
+base_trader.check_balance()  # 打印当前总资产
