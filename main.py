@@ -34,10 +34,10 @@ EnhancedTrader = EnhancedTrader(initial_balance)
 # 按每个 etf
 for stock_id in [semi_id]:
     # 累计三年的数据
-    for year in [2022, 2023, 2024]:
+    for year in [2024]:
         settedStock = StockData(semi_id, year)
         data_size = settedStock.get_trade_day()
-        print(year)
+        # print(year)
         # 获得该年的操作过程
         for i in range(0, data_size):
             cur_price = settedStock.get_data_by_day_id(i)
@@ -54,3 +54,4 @@ for stock_id in [semi_id]:
 
 EnhancedTrader.buy_sell_graph() 
 EnhancedTrader.check_balance()
+print(EnhancedTrader.calculate_max_drawdown())

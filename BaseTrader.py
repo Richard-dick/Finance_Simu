@@ -203,6 +203,26 @@ class BaseTrader:
             print(self.day_id, stock_id, holding['shares'], holding['price'], self.cur_price)
         print(f"Day: {self.day_id} | 当前总资产: {total_value} | 可用资金: {self.balance}")
 
+    def calculate_max_drawdown(self):
+        """
+        计算给定净值序列的最大回撤。
+        
+        :param values: 净值序列，可以是一个list或numpy数组。
+        :return: 最大回撤率（百分比形式）
+        """
+        values = self.balance_history
+        peak = values[0]
+        max_drawdown = 0.0
+        
+        for value in values:
+            if value > peak:
+                peak = value  # 更新峰值
+            drawdown = (peak - value) / peak  # 计算当前回撤
+            if drawdown > max_drawdown:
+                max_drawdown = drawdown  # 更新最大回撤
+                
+        return max_drawdown * 100 
+
 
 
 class StockData:
