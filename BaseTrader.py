@@ -125,6 +125,55 @@ class BaseTrader:
         else:
             self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
             print("没有持有该股票，无法卖出")
+
+    def buy_by_hand(self, stock_id, hands):
+        """
+        买入股票
+        :param stock_id: 股票ID
+        :param hands: 买入 x 手 = 100*x股
+        """
+        holding = self.holdings.get(stock_id, None)
+        buy_price = self.cur_price  # 获取当前价格
+        buy_share = hands  # 计算购买份数
+        # 计算买入实际金额
+        buy_amount = buy_share * buy_price
+
+        if buy_amount > self.balance:# 一般来说是不会发生的
+            # print("余额不足，无法买入")
+            # print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
+            self.trade_history.append([self.day_id, 0, 0, buy_price])  # 记录交易情况
+            return
+        if holding:
+            # 如果已经持有该股票，则更新持有信息
+            holding['price'] = (holding['price'] * holding['shares'] + buy_amount) / (holding['shares'] + buy_share)
+            holding['shares'] += buy_share
+        else:
+            # 如果没有持有该股票，则添加新的持有信息
+            self.holdings[stock_id] = {'price': buy_price, 'shares': buy_share, 'can_sell': True}
+        self.balance -= buy_amount  # 扣除买入金额
+        self.traded = True  # 标记为已交易
+        print("Day:", self.day_id, "| 买入", stock_id, "| 数量", buy_share, "| 价格", buy_price, "| 剩余资金", self.balance)
+        self.trade_history.append([self.day_id, buy_share, buy_amount, buy_price])  # 记录交易情况
+
+    def sell_by_hand(self, stock_id, hands):
+        holding = self.holdings.get(stock_id, None)
+        sold_shares = hands
+        if sold_shares > holding['shares'] or sold_shares == 0:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
+            return  # 如果没有可卖出的股票，则返回
+
+        if holding:
+            # 卖出持有的股票
+            self.traded = True  # 标记为已交易
+            sell_price = self.cur_price
+            holding['shares'] -= sold_shares
+            get_money = sold_shares * sell_price
+            self.balance += (get_money - sell_fee(get_money))  # 扣除手续费
+            print("Day:", self.day_id, "| 卖出", stock_id, "| 数量", sold_shares, "| 价格", sell_price, "| 剩余资金：", self.balance)
+            self.trade_history.append([self.day_id, -sold_shares, get_money, sell_price])  # 记录交易情况
+        else:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])  # 记录交易情况
+            print("没有持有该股票，无法卖出")
             
 
     def all_balance(self):

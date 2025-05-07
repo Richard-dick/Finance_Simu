@@ -75,21 +75,34 @@ class EnhancedTrader(BaseTrader):
             current_vol < vol_ma * 0.8            # 成交量萎缩
         )
 
-        # 交易逻辑
+        # 交易逻辑-1
         if buy_condition:
             if current_shares == 0:  # 空仓时建仓
                 self.buy(stock_id, buy_ratio * self.balance)
                 self.position = 1
             else:                     # 持仓时加仓
                 self.buy(stock_id, buy_ratio * 0.5 * self.balance)
-                
         elif sell_condition and current_shares > 0:
             self.sell(stock_id, sell_ratio)  # 卖出持仓的50%
             if self.holdings[stock_id]['shares'] == 0:
                 self.position = 0
-
         else:
             self.trade_history.append([self.day_id, 0, 0, self.cur_price])
+
+        # -2
+        # 交易逻辑
+        # if buy_condition:
+        #     if current_shares == 0:  # 空仓时建仓
+        #         self.buy_hand(stock_id, 50)
+        #         self.position = 1
+        #     else:                     # 持仓时加仓
+        #         self.buy_hand(stock_id, 50)
+        # elif sell_condition and current_shares > 0:
+        #     self.sell_hand(stock_id, 50)  # 卖出持仓的50%
+        #     if self.holdings[stock_id]['shares'] == 0:
+        #         self.position = 0
+        # else:
+        #     self.trade_history.append([self.day_id, 0, 0, self.cur_price])
 
     # 保持父类的buy/sell方法不变，可视需要添加成交量记录
     def buy(self, stock_id, amount):
@@ -103,6 +116,21 @@ class EnhancedTrader(BaseTrader):
     def sell(self, stock_id, share_ratio):
         """重写卖出方法，添加成交量记录"""
         super().sell(stock_id, share_ratio)
+        if self.trade_history:
+            last_trade = self.trade_history[-1]
+            last_trade.append(self.volume_history[-1])
+
+    def buy_hand(self, stock_id, hand):
+        """重写买入方法，添加成交量记录"""
+        super().buy_by_hand(stock_id, hand)
+        # 在交易记录中添加成交量信息（扩展父类功能）
+        if self.trade_history:
+            last_trade = self.trade_history[-1]
+            last_trade.append(self.volume_history[-1])  # 格式：[day, shares, amount, price, volume]
+
+    def sell_hand(self, stock_id, hand):
+        """重写卖出方法，添加成交量记录"""
+        super().sell_by_hand(stock_id, hand)
         if self.trade_history:
             last_trade = self.trade_history[-1]
             last_trade.append(self.volume_history[-1])
