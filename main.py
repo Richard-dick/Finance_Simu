@@ -24,24 +24,33 @@ volt_id = "515790"  # 光伏 etf   猛猛跌
 
 # trader.all_balance()  # 打印当前总资产
 
-semiConductor = StockData(semi_id, 2024)  # 假设股票ID为"512480"，天数从0到99
 # semiConductor.draw_data(2022)
 # exit()
 base_trader = BaseTrader(initial_balance)
 perfect_trader = PerfectTrader(initial_balance)
 old_trader = OldTrader(initial_balance)
 EnhancedTrader = EnhancedTrader(initial_balance)
-data_size = semiConductor.get_trade_day()
 
-for i in range(0, data_size):
-    cur_price = semiConductor.get_data_by_day_id(i)  # 获取当前价格
-    cur_vol = semiConductor.get_volume_by_day_id(i)  # 获取当前成交量
-    base_trader.trade("512480", cur_price, strategy='simple') 
-    # perfect_trader.trade("512480", cur_price)
-    # old_trader.trade("512480", cur_price)  
-    EnhancedTrader.trade("512480", cur_price, cur_vol, strategy='volume_price')  # 执行交易
+# 按每个 etf
+for stock_id in [semi_id]:
+    # 累计三年的数据
+    for year in [2022, 2023, 2024]:
+        settedStock = StockData(semi_id, year)
+        data_size = settedStock.get_trade_day()
+        print(year)
+        # 获得该年的操作过程
+        for i in range(0, data_size):
+            cur_price = settedStock.get_data_by_day_id(i)
+            cur_vol = settedStock.get_volume_by_day_id(i)
+            # base_trader.trade(stock_id, cur_price, strategy='simple')  # 执行交易
+            # perfect_trader.trade(stock_id, cur_price)
+            # old_trader.trade(stock_id, cur_price)  
+            EnhancedTrader.trade(stock_id, cur_price, cur_vol, strategy='volume_price')  # 执行交易
+
 
 # perfect_trader.perfect_strategy("512480")  # 执行完所有的交易后，调用完美策略
-EnhancedTrader.buy_sell_graph()  # 打印当前总资产
+# base_trader.buy_sell_graph()
+# base_trader.check_balance()
+
+EnhancedTrader.buy_sell_graph() 
 EnhancedTrader.check_balance()
-base_trader.check_balance()  # 打印当前总资产
