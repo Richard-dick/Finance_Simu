@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from utils import round_shares, sell_fee
 
 """
@@ -220,8 +221,40 @@ class BaseTrader:
             drawdown = (peak - value) / peak  # 计算当前回撤
             if drawdown > max_drawdown:
                 max_drawdown = drawdown  # 更新最大回撤
-                
+        
+        print("最大回撤率:", max_drawdown * 100, "%")
         return max_drawdown * 100 
+
+    def calc_sharp_ratio(self):
+        assets = np.array(self.balance_history)
+
+        # 计算每日收益率
+        returns = (assets[1:] - assets[:-1]) / assets[:-1]
+
+        # 平均每日收益率
+        avg_daily_return = returns.mean()
+
+        # 年化平均收益率（假设一年有242个交易日）
+        trading_days = 242
+        avg_annual_return = avg_daily_return * trading_days
+
+        # 日收益率的标准差
+        std_daily_return = returns.std()
+
+        # 年化标准差
+        std_annual_return = std_daily_return * np.sqrt(trading_days)
+
+        # 无风险利率（年化），例如：1.48% 三年国债年化利率
+        rf = 0.0148
+
+        # 夏普比率
+        sharpe_ratio = (avg_annual_return - rf) / std_annual_return
+
+        print(f"年化平均收益率: {avg_annual_return:.4f}")
+        print(f"年化标准差: {std_annual_return:.4f}")
+        print(f"夏普比率: {sharpe_ratio:.4f}")
+
+        return sharpe_ratio  # 夏普比率 = 收益率 / 风险
 
 
 
