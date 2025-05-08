@@ -41,8 +41,8 @@ class EnhancedTrader(BaseTrader):
                              short_window=5, 
                              long_window=20,
                              vol_window=5,
-                             buy_ratio=0.3,
-                             sell_ratio=0.5):
+                             buy_ratio=0.2,
+                             sell_ratio=1.0):
         """
         量价结合策略（核心逻辑）
         策略逻辑：
@@ -61,18 +61,18 @@ class EnhancedTrader(BaseTrader):
         current_shares = self.holdings[stock_id]['shares']
         current_vol = self.volume_history[-1]
 
-        # 买入信号条件
+        # 卖出信号条件
         sell_condition = (
-            short_ma > long_ma and                # 均线金叉
+            short_ma > long_ma and                # 均线交叉
             self.cur_price > short_ma and         # 价格在短期均线上方
-            current_vol > vol_ma * 1.2 and        # 成交量放大
-            self.balance > self.cur_price         # 有足够现金
+            current_vol > vol_ma * 1.35            # 成交量放大
         )
 
-        # 卖出信号条件
+        # 买入信号条件
         buy_condition = (
-            self.cur_price < long_ma or           # 价格跌破长期均线
-            current_vol < vol_ma * 0.8            # 成交量萎缩
+            self.cur_price < long_ma and           # 价格跌破长期均线
+            current_vol < vol_ma * 0.7 or         # 成交量萎缩
+            (short_ma < long_ma and current_vol < vol_ma * 1.1)  # 短期均线下穿长期均线，且成交量没有明显上涨
         )
 
         # 交易逻辑-1
@@ -81,7 +81,7 @@ class EnhancedTrader(BaseTrader):
                 self.buy(stock_id, buy_ratio * self.balance)
                 self.position = 1
             else:                     # 持仓时加仓
-                self.buy(stock_id, buy_ratio * 0.5 * self.balance)
+                self.buy(stock_id, buy_ratio *0.5 * self.balance)
         elif sell_condition and current_shares > 0:
             self.sell(stock_id, sell_ratio)  # 卖出持仓的50%
             if self.holdings[stock_id]['shares'] == 0:

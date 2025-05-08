@@ -35,7 +35,7 @@ EnhancedTrader = EnhancedTrader(initial_balance)
 for stock_id in [semi_id]:
     # 累计三年的数据
     for year in [2022, 2023, 2024]:
-        settedStock = StockData(semi_id, year)
+        settedStock = StockData(stock_id, year)
         data_size = settedStock.get_trade_day()
         print(year)
         print(data_size)
@@ -53,6 +53,6 @@ for stock_id in [semi_id]:
 # base_trader.buy_sell_graph()
 # base_trader.check_balance()
 
-EnhancedTrader.buy_sell_graph() 
+# EnhancedTrader.buy_sell_graph() 
 EnhancedTrader.check_balance()
 print(EnhancedTrader.calc_sharp_ratio())

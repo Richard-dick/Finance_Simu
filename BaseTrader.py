@@ -37,7 +37,7 @@ class BaseTrader:
         if stock_id not in self.holdings:
             self.holdings[stock_id] = {'price': cur_price, 'shares': 0, 'can_sell': True}
         if strategy == 'simple':
-            self.simple_strategy(stock_id, buy_ration=0.1, sell_ration=0.4)
+            self.simple_strategy(stock_id, buy_ration=0.1, sell_ration=0.2)
         
         self.balance_history.append(self.all_balance())  # 记录总资产变化
         
