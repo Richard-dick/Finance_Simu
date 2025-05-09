@@ -66,8 +66,8 @@ class RFtrader(BaseTrader):
         print("开始训练")
         X_data = []
         y_data = []
-        future_horizon = 20
-        threshold = 0.005  # 0.5%
+        future_horizon = 40
+        threshold = 0.000  # 0.5%
 
         for day_id in range(0, self.stock_data.get_trade_day() - future_horizon):
         # for day_id in range(0, 100 - future_horizon):
