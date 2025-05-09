@@ -364,7 +364,7 @@ class StockData:
         api=TdxHq_API()
         data = []
 
-        with api.connect('111.229.247.189', 7709):
+        with api.connect('jstdx.gtjas.com', 7709):
             print("连接成功")
             for i in range(10):
                 data+=api.get_security_bars(9, 1, stock_id, (9-i)*800, 800)
