@@ -41,7 +41,7 @@ for stock_id in [gold_id]:
     for year in [2022, 2023, 2024]:
         settedStock = StockData(stock_id, year)
         data_size = settedStock.get_trade_day()
-        # rftrader.load_stock(settedStock)
+        rftrader.load_stock(settedStock)
         # rftrader.train()
         print(year)
         print(data_size)
