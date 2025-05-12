@@ -62,11 +62,14 @@ class RFtrader(BaseTrader):
     #     self.model = model
     #     print("训练结束")
 
-    def train(self):
+    def train(self,
+              short_window=5, 
+              long_window=20,
+              vol_window=5,):
         print("开始训练")
         X_data = []
         y_data = []
-        future_horizon = 40
+        future_horizon = 20
         threshold = 0.000  # 0.5%
 
         for day_id in range(0, self.stock_data.get_trade_day() - future_horizon):
@@ -76,16 +79,35 @@ class RFtrader(BaseTrader):
                 continue
 
             cur_price = self.stock_data.get_data_by_day_id(day_id)
+            cur_colume = self.stock_data.get_volume_by_day_id(day_id)
 
             # 获取未来 20 天的价格均值
             future_prices = [self.stock_data.get_data_by_day_id(day_id + i) for i in range(1, future_horizon + 1)]
-            future_mean_price = np.mean(future_prices)
-            future_trend = (future_mean_price / cur_price) - 1
+            future_volumes = [self.stock_data.get_volume_by_day_id(day_id + i) for i in range(1, future_horizon + 1)]
+
+            # 计算技术指标
+            short_ma = sum(future_prices[:short_window])/short_window
+            long_ma = sum(future_prices[:long_window])/long_window
+            vol_ma = sum(future_volumes[:vol_window])/vol_window
+
+            # 卖出信号条件
+            sell_condition = (
+                short_ma > long_ma and                # 均线交叉
+                cur_price > short_ma and         # 价格在短期均线上方
+                cur_colume > vol_ma * 1.1             # 成交量放大
+            )
+
+            # 买入信号条件
+            buy_condition = (
+                cur_price < long_ma and           # 价格跌破长期均线
+                cur_colume < vol_ma * 0.9 or         # 成交量萎缩
+                (short_ma < long_ma and cur_colume < vol_ma * 1.1)  # 短期均线下穿长期均线，且成交量没有明显上涨
+            )
 
             # 构造标签（基于未来均线 vs 当前价）
-            if future_trend > threshold:
+            if buy_condition:
                 label = 2  # 涨
-            elif future_trend < -threshold:
+            elif sell_condition:
                 label = 0  # 跌
             else:
                 label = 1  # 持平
