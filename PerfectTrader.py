@@ -17,7 +17,7 @@ class PerfectTrader(BaseTrader):
         indicator = -100.0 # -1 代表之前为下降，+1代表之前为上升。 第一天默认是下降
         self.stock_history.append(0.0)  # 添加一个末尾小值，避免越界且使得最后一天必然卖出
         for i in range(0, len(self.stock_history)-1):
-            print(indicator*(self.stock_history[i+1] - self.stock_history[i]) < 0.0)
+            # print(indicator*(self.stock_history[i+1] - self.stock_history[i]) < 0.0)
             self.cur_price = self.stock_history[i]
             self.day_id = i
             if indicator*(self.stock_history[i+1] - self.stock_history[i]) < 0.0:
@@ -32,5 +32,6 @@ class PerfectTrader(BaseTrader):
             elif indicator*(self.stock_history[i+1] - self.stock_history[i]) > 0.0:
                 # 同号，保持之前的趋势，不动
                 self.trade_history.append([i, 0, 0, self.stock_history[i]])
+            self.balance_history.append(self.all_balance())
         
         

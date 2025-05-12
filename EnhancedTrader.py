@@ -51,7 +51,9 @@ class EnhancedTrader(BaseTrader):
         3. 成交量放大定义为：当日成交量超过过去vol_window日平均的1.2倍
         """
         if len(self.price_history) < long_window:
+            self.trade_history.append([self.day_id, 0, 0, self.cur_price])
             return  # 数据不足不交易
+        # print(self.cur_price)
 
         # 计算技术指标
         short_ma = sum(self.price_history[-short_window:])/short_window
@@ -109,28 +111,28 @@ class EnhancedTrader(BaseTrader):
         """重写买入方法，添加成交量记录"""
         super().buy(stock_id, amount)
         # 在交易记录中添加成交量信息（扩展父类功能）
-        if self.trade_history:
-            last_trade = self.trade_history[-1]
-            last_trade.append(self.volume_history[-1])  # 格式：[day, shares, amount, price, volume]
+        # if self.trade_history:
+        #     last_trade = self.trade_history[-1]
+        #     last_trade.append(self.volume_history[-1])  # 格式：[day, shares, amount, price, volume]
 
     def sell(self, stock_id, share_ratio):
         """重写卖出方法，添加成交量记录"""
         super().sell(stock_id, share_ratio)
-        if self.trade_history:
-            last_trade = self.trade_history[-1]
-            last_trade.append(self.volume_history[-1])
+        # if self.trade_history:
+        #     last_trade = self.trade_history[-1]
+        #     last_trade.append(self.volume_history[-1])
 
     def buy_hand(self, stock_id, hand):
         """重写买入方法，添加成交量记录"""
         super().buy_by_hand(stock_id, hand)
         # 在交易记录中添加成交量信息（扩展父类功能）
-        if self.trade_history:
-            last_trade = self.trade_history[-1]
-            last_trade.append(self.volume_history[-1])  # 格式：[day, shares, amount, price, volume]
+        # if self.trade_history:
+        #     last_trade = self.trade_history[-1]
+        #     last_trade.append(self.volume_history[-1])  # 格式：[day, shares, amount, price, volume]
 
     def sell_hand(self, stock_id, hand):
         """重写卖出方法，添加成交量记录"""
         super().sell_by_hand(stock_id, hand)
-        if self.trade_history:
-            last_trade = self.trade_history[-1]
-            last_trade.append(self.volume_history[-1])
+        # if self.trade_history:
+        #     last_trade = self.trade_history[-1]
+        #     last_trade.append(self.volume_history[-1])

@@ -226,8 +226,11 @@ class BaseTrader:
         x = range(len(self.balance_history))
         # print(self.trade_history)
         init_price = self.trade_history[0][-1]  # 获取初始价格
+        # print(init_price)
 
         y = [100000 *_[-1]/init_price for _ in self.trade_history]
+        for i in range(len(self.trade_history)):
+            _ = self.trade_history[i]
         plt.figure(figsize=(12, 6))
         
 
@@ -293,13 +296,17 @@ class BaseTrader:
         # 年化标准差
         std_annual_return = std_daily_return * np.sqrt(trading_days)
 
+        all_return = assets[-1]  / assets[0]
+
+        avg_all_return = all_return ** (1/3) - 1
+
         # 无风险利率（年化），例如：1.48% 三年国债年化利率
         rf = 0.0148
 
         # 夏普比率
-        sharpe_ratio = (avg_annual_return - rf) / std_annual_return
+        sharpe_ratio = (avg_all_return - rf) / std_annual_return
 
-        print(f"年化平均收益率: {avg_annual_return:.4f}")
+        print(f"年化平均收益率: {avg_all_return:.4f}")
         print(f"年化标准差: {std_annual_return:.4f}")
         print(f"夏普比率: {sharpe_ratio:.4f}")
 
