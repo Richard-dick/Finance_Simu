@@ -94,7 +94,7 @@ class RFtrader(BaseTrader):
             sell_condition = (
                 short_ma > long_ma and                # 均线交叉
                 cur_price > short_ma and         # 价格在短期均线上方
-                cur_colume > vol_ma * 1.1             # 成交量放大
+                cur_colume > vol_ma * 1.35            # 成交量放大
             )
 
             # 买入信号条件
@@ -126,7 +126,6 @@ class RFtrader(BaseTrader):
         from sklearn.metrics import classification_report
         print("测试集结果:")
         print(classification_report(y_test, model.predict(X_test)))
-
     
     def ml_strategy(self, stock_id, model, cur_day, buy_ration=0.2, sell_ration=0.4):
         """
